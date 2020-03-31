@@ -4,6 +4,8 @@ import sys
 import os
 import pprint
 import re
+import plotly.offline as offline
+import plotly.graph_objs as go
 
 HEADER = 'Applications Memory Usage (in Killobytes):'
 
@@ -140,8 +142,34 @@ def parse_dumpsys_meminfo(path):
     return meminfo
 
 def draw_graph(meminfos):
-    # TODO
-    pass
+    uptimes = [mi.uptime for mi in meminfos]
+    total_free = [mi.summary['Free RAM']/1024 for mi in meminfos]
+    total_used = [mi.summary['Used RAM']/1024 for mi in meminfos]
+    foreground = list()
+    for mi in meminfos:
+        if 'Foreground' in mi.oom_adj:
+            foreground.append(mi.oom_adj['Foreground']/1024)
+        else:
+            foreground.append(None)
+
+    data = [
+        go.Scatter(
+            x = uptimes,
+            y = total_free,
+            mode = 'lines+markers',
+            name = 'Free RAM [MiB]'),
+        go.Scatter(
+            x = uptimes,
+            y = total_used,
+            mode = 'lines+markers',
+            name = 'Used RAM [MiB]'),
+        go.Scatter(
+            x = uptimes,
+            y = foreground,
+            mode = 'lines+markers',
+            name = 'Foreground [MiB]'),
+    ]
+    offline.plot(data, filename='dmanalyzer.html', image='png')
 
 def main():
     if len(sys.argv) != 2:
@@ -149,7 +177,6 @@ def main():
 
     log_dir = sys.argv[1]
     files = os.listdir(log_dir)
-    files.sort()
     meminfos = list()
 
     for file in files:
@@ -160,6 +187,7 @@ def main():
         meminfo = parse_dumpsys_meminfo(path)
         meminfos.append(meminfo)
 
+    meminfos.sort(key=lambda meminfo: meminfo.uptime)
     draw_graph(meminfos)
 
 if __name__ == '__main__':
