@@ -125,6 +125,7 @@ def parse_dumpsys_meminfo(path):
         while line:
             if line.startswith(LEAD_TIME):
                 uptime, realtime = parse_time(line)
+
                 meminfo.uptime = uptime
                 meminfo.realtime = realtime
             elif line.startswith(LEAD_PROCESS):
@@ -237,7 +238,8 @@ def main():
             continue
 
         meminfo = parse_dumpsys_meminfo(path)
-        meminfos.append(meminfo)
+        if hasattr(meminfo, 'uptime'):
+            meminfos.append(meminfo)
 
     meminfos.sort(key=lambda meminfo: meminfo.uptime)
     draw_graph(meminfos)
