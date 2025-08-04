@@ -129,6 +129,8 @@ def parse_dumpsys_meminfo(path):
                 meminfo.realtime = realtime
             elif line.startswith(LEAD_PROCESS):
                 meminfo.processes = parse_process(f)
+#                for process in meminfo.processes:
+#                    print("process", process, "\n")
             elif line.startswith(LEAD_OOM):
                 meminfo.oom_adj = parse_oom_adj(f)
                 # pprint.pprint(meminfo.oom_adj)
@@ -152,6 +154,36 @@ def draw_graph(meminfos):
     uptimes = [seconds_to_hms(mi.uptime) for mi in meminfos]
     total_free = [mi.summary['Free RAM']/1024 for mi in meminfos]
     total_used = [mi.summary['Used RAM']/1024 for mi in meminfos]
+    #需要先列出所有的process.name, 然后按process.name 来取数画图
+    #当前可能最开始没有，后面突然出现的这样的进程会比较麻烦，
+    #需要先遍历一次所有log找出所有process，再二次添加数据
+    process_names = {}
+    for mi in meminfos:
+        for process in mi.processes:
+            if process_names.get(process.name, "") == "":
+                process_names[process.name] = []
+
+    #抽取数据准备显示
+#    for name in process_names:
+#        print(f"dict process name {name} value {process_names[name]}")
+
+
+    for mi in meminfos:
+        for process_name in process_names:
+            found = False
+            for process in mi.processes:
+                if process_name == process.name:
+                    process_names[process.name].append(process.pss)
+                    found = True
+                    break
+            if found == False:
+               process_names[process_name].append(0)
+
+
+    #抽取数据准备显示
+#    for name in process_names:
+#        print(f"dict process name {name} value {process_names[name]}")
+
     foreground = list()
     for mi in meminfos:
         if 'Foreground' in mi.oom_adj:
@@ -159,6 +191,7 @@ def draw_graph(meminfos):
         else:
             foreground.append(None)
 
+    """
     data = [
         go.Scatter(
             x = uptimes,
@@ -176,6 +209,18 @@ def draw_graph(meminfos):
             mode = 'lines+markers',
             name = 'Foreground [MiB]'),
     ]
+    """
+    data = []
+
+    #抽取数据准备显示
+    for name in process_names:
+        data.append(
+            go.Scatter(
+            x = uptimes,
+            y = process_names[name],
+            mode = 'lines+markers',
+            name = f'{name}'))
+
     offline.plot(data, filename='dmanalyzer.html', image='png')
 
 def main():
