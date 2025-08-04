@@ -153,8 +153,8 @@ def seconds_to_hms(seconds):
 
 def draw_graph(meminfos, top: int = 0):
     uptimes = [seconds_to_hms(mi.uptime) for mi in meminfos]
-    total_free = [mi.summary['Free RAM']/1024 for mi in meminfos]
-    total_used = [mi.summary['Used RAM']/1024 for mi in meminfos]
+    total_free = [mi.summary['Free RAM']*1024 for mi in meminfos]
+    total_used = [mi.summary['Used RAM']*1024 for mi in meminfos]
     #需要先列出所有的process.name, 然后按process.name 来取数画图
     #当前可能最开始没有，后面突然出现的这样的进程会比较麻烦，
     #需要先遍历一次所有log找出所有process，再二次添加数据
@@ -204,30 +204,29 @@ def draw_graph(meminfos, top: int = 0):
     foreground = list()
     for mi in meminfos:
         if 'Foreground' in mi.oom_adj:
-            foreground.append(mi.oom_adj['Foreground']/1024)
+            foreground.append(mi.oom_adj['Foreground']*1024)
         else:
             foreground.append(None)
 
-    """
     data = [
         go.Scatter(
             x = uptimes,
             y = total_free,
             mode = 'lines+markers',
-            name = 'Free RAM [MiB]'),
+            name = 'Free RAM'),
+    ]
+    """
         go.Scatter(
             x = uptimes,
             y = total_used,
             mode = 'lines+markers',
-            name = 'Used RAM [MiB]'),
+            name = 'Used RAM'),
         go.Scatter(
             x = uptimes,
             y = foreground,
             mode = 'lines+markers',
-            name = 'Foreground [MiB]'),
-    ]
+            name = 'Foreground'),
     """
-    data = []
 
     #抽取数据准备显示
     for name in process_names:
