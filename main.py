@@ -42,7 +42,7 @@ class Process:
             + ', pid = ' + str(self.pid)
 
 def usage():
-    print('[USAGE] ' + sys.argv[0] + ' DIR')
+    print('[USAGE] ' + sys.argv[0] + ' DIR' + ' TOP')
     sys.exit(1)
 
 def is_dumpsys_meminfo(path):
@@ -125,7 +125,6 @@ def parse_dumpsys_meminfo(path):
         while line:
             if line.startswith(LEAD_TIME):
                 uptime, realtime = parse_time(line)
-
                 meminfo.uptime = uptime
                 meminfo.realtime = realtime
             elif line.startswith(LEAD_PROCESS):
@@ -145,13 +144,14 @@ def parse_dumpsys_meminfo(path):
     return meminfo
 
 def seconds_to_hms(seconds):
+    seconds = seconds // 1000
     h = seconds // 3600
     m = (seconds % 3600) // 60
     s = seconds % 60
     return f"{h}:{m:02d}:{s:02d}" # :02d 确保分钟和秒是两位数
 
 
-def draw_graph(meminfos):
+def draw_graph(meminfos, top: int = 0):
     uptimes = [seconds_to_hms(mi.uptime) for mi in meminfos]
     total_free = [mi.summary['Free RAM']/1024 for mi in meminfos]
     total_used = [mi.summary['Used RAM']/1024 for mi in meminfos]
@@ -174,7 +174,7 @@ def draw_graph(meminfos):
             found = False
             for process in mi.processes:
                 if process_name == process.name:
-                    process_names[process.name].append(process.pss)
+                    process_names[process.name].append(process.pss*1024)
                     found = True
                     break
             if found == False:
@@ -182,8 +182,24 @@ def draw_graph(meminfos):
 
 
     #抽取数据准备显示
-#    for name in process_names:
-#        print(f"dict process name {name} value {process_names[name]}")
+    if top > 0:
+        sum_value = {}
+        for name in process_names:
+            print(f"dict process name {name} process {process_names[name]}")
+            sum_value[name] = sum(process_names[name])
+        #    print(f"dict process name {name} sum {sum_value[name]}")
+
+        top_n = sorted(sum_value.items(), key=lambda item: item[1], reverse=True)[:top]
+        top_n_dict = dict(top_n)
+
+        #过滤top10
+        for name in list(process_names.keys()):
+            if name in top_n_dict:
+                continue
+            else:
+                process_names.pop(name)
+
+    #这里取一次top
 
     foreground = list()
     for mi in meminfos:
@@ -225,10 +241,14 @@ def draw_graph(meminfos):
     offline.plot(data, filename='dmanalyzer.html', image='png')
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) > 3:
         usage()
 
     log_dir = sys.argv[1]
+    top = 0
+    if len(sys.argv) == 3:
+        top = int(sys.argv[2])
+
     files = os.listdir(log_dir)
     meminfos = list()
 
@@ -242,7 +262,7 @@ def main():
             meminfos.append(meminfo)
 
     meminfos.sort(key=lambda meminfo: meminfo.uptime)
-    draw_graph(meminfos)
+    draw_graph(meminfos, top)
 
 if __name__ == '__main__':
     main()
