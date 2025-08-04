@@ -141,8 +141,15 @@ def parse_dumpsys_meminfo(path):
             line = f.readline()
     return meminfo
 
+def seconds_to_hms(seconds):
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    return f"{h}:{m:02d}:{s:02d}" # :02d 确保分钟和秒是两位数
+
+
 def draw_graph(meminfos):
-    uptimes = [mi.uptime for mi in meminfos]
+    uptimes = [seconds_to_hms(mi.uptime) for mi in meminfos]
     total_free = [mi.summary['Free RAM']/1024 for mi in meminfos]
     total_used = [mi.summary['Used RAM']/1024 for mi in meminfos]
     foreground = list()
