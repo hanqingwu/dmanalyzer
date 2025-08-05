@@ -182,10 +182,11 @@ def draw_graph(meminfos, top: int = 0):
 
 
     #抽取数据准备显示
+    #这里取一次top
     if top > 0:
         sum_value = {}
         for name in process_names:
-            print(f"dict process name {name} process {process_names[name]}")
+#            print(f"dict process name {name} process {process_names[name]}")
             sum_value[name] = sum(process_names[name])
         #    print(f"dict process name {name} sum {sum_value[name]}")
 
@@ -198,8 +199,6 @@ def draw_graph(meminfos, top: int = 0):
                 continue
             else:
                 process_names.pop(name)
-
-    #这里取一次top
 
     foreground = list()
     for mi in meminfos:
@@ -237,7 +236,10 @@ def draw_graph(meminfos, top: int = 0):
             mode = 'lines+markers',
             name = f'{name}'))
 
-    offline.plot(data, filename='dmanalyzer.html', image='png')
+    #offline.plot(data, filename='dmanalyzer.html', image='png', auto_open=False)
+    offline.plot(data, filename='dmanalyzer.html', auto_open=False)
+# 可将 div_html 嵌入到 Flask/Django 模板中
+#    offline.plot(data, filename='dmanalyzer.html')
 
 def main():
     if len(sys.argv) > 3:
